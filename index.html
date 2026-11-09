@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuff Prints</title>
+
+<style>
+body {
+    background: #101827;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 { color: #38bdf8; }
+
+.card {
+    background: #1e293b;
+    padding: 20px;
+    margin: 15px auto;
+    border-radius: 15px;
+    max-width: 400px;
+}
+
+input, select, button {
+    padding: 12px;
+    margin: 8px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    background: #38bdf8;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.hidden { display: none; }
+
+.product {
+    border-bottom: 1px solid #475569;
+    padding: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>⚡ TUFF PRINTS</h1>
+<p>Custom 3D Printed Key Switch Fidgets</p>
+
+<!-- SIGN IN -->
+<div id="login" class="card">
+    <h2>Welcome!</h2>
+    <p>Enter your name to continue</p>
+    <input id="name" placeholder="Your name">
+    <br>
+    <button onclick="signIn()">SIGN IN</button>
+    <p id="loginMessage"></p>
+</div>
+
+<!-- STORE -->
+<div id="store" class="hidden">
+
+    <h2>Welcome, <span id="customer"></span>!</h2>
+    <h3>Choose your fidgets</h3>
+
+    <div id="products"></div>
+
+    <div class="card">
+        <h2>Your Order</h2>
+        <p id="preview">No items selected.</p>
+        <button onclick="placeOrder()">PRE-ORDER</button>
+        <p id="message"></p>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="card">
+        <h2>Admin Orders</h2>
+        <div id="orders"></div>
+    </div>
+
+</div>
+
+<script>
+
+let stock = {
+    "1pc Gray": 3,
+    "1pc White": 3,
+    "1pc Black": 3,
+    "2pc Blue": 3,
+    "2pc Green": 3,
+    "4pc Blue": 3,
+    "4pc White": 3,
+    "4pc Black": 3
+};
+
+let savedOrders = JSON.parse(
+    localStorage.getItem("tuffOrders") || "[]"
+);
+
+let savedStock = localStorage.getItem("tuffStock");
+
+if (savedStock) {
+    stock = JSON.parse(savedStock);
+}
+
+function signIn() {
+    let name = document.getElementById("name").value.trim();
+
+    if (!name) {
+        document.getElementById("loginMessage").innerText =
+        "Please enter your name!";
+        return;
+    }
+
+    document.getElementById("customer").innerText = name;
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("store").classList.remove("hidden");
+
+    showProducts();
+    showOrders();
+}
+
+function showProducts() {
+    let html = "";
+
+    for (let item in stock) {
+        html += `
+        <div class="card product">
+            <h3>${item}</h3>
+            <p>${stock[item]} available</p>
+            <input type="number"
+            id="${item}" min="0"
+            max="${stock[item]}" value="0">
+        </div>`;
+    }
+
+    document.getElementById("products").innerHTML = html;
+}
+
+function placeOrder() {
+    let order = [];
+
+    for (let item in stock) {
+        let amount = Number(
+            document.getElementById(item).value
+        );
+
+        if (!Number.isInteger(amount) ||
+            amount < 0 || amount > stock[item]) {
+            document.getElementById("message").innerText =
+            "Invalid quantity!";
+            return;
+        }
+
+        if (amount > 0) {
+            order.push({
+                product: item,
+                quantity: amount
+            });
+        }
+    }
+
+    if (order.length === 0) {
+        document.getElementById("message").innerText =
+        "Choose something first!";
+        return;
+    }
+
+    let newOrder = {
+        name: document.getElementById("name").value,
+        items: order,
+        date: new Date().toLocaleString()
+    };
+
+    savedOrders.push(newOrder);
+
+    order.forEach(item => {
+        stock[item.product] -= item.quantity;
+    });
+
+    localStorage.setItem(
+        "tuffOrders",
+        JSON.stringify(savedOrders)
+    );
+
+    localStorage.setItem(
+        "tuffStock",
+        JSON.stringify(stock)
+    );
+
+    document.getElementById("message").innerText =
+    "Order saved! Thank you!";
+
+    showProducts();
+    showOrders();
+}
+
+function showOrders() {
+    let html = "";
+
+    savedOrders.forEach(order => {
+        html += `
+        <div class="product">
+            <b>${order.name}</b>
+            <p>${order.items.map(i =>
+                i.product + " x " + i.quantity
+            ).join(", ")}</p>
+            <small>${order.date}</small>
+        </div>`;
+    });
+
+    document.getElementById("orders").innerHTML =
+    html || "No orders yet.";
+}
+
+</script>
+
+</body>
+</html>
